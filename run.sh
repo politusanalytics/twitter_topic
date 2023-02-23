@@ -1,0 +1,43 @@
+echo "====== TRANSFORMERS MODEL: dbmdz/bert-base-turkish-128k-cased welfare 64 64 ======"
+echo "=== SEED: 42 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 42
+echo "=== SEED: 43 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 43
+echo "=== SEED: 44 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 44
+echo "=== SEED: 45 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 45
+echo "=== SEED: 46 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 46
+echo "=== SEED: 47 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 47
+echo "=== SEED: 48 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 48
+echo "=== SEED: 49 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 49
+echo "=== SEED: 50 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 50
+echo "=== SEED: 51 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased welfare 51
+
+echo "====== TRANSFORMERS MODEL: dbmdz/bert-base-turkish-128k-cased democracy 64 64 ======"
+echo "=== SEED: 42 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 42
+echo "=== SEED: 43 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 43
+echo "=== SEED: 44 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 44
+echo "=== SEED: 45 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 45
+echo "=== SEED: 46 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 46
+echo "=== SEED: 47 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 47
+echo "=== SEED: 48 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 48
+echo "=== SEED: 49 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 49
+echo "=== SEED: 50 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 50
+echo "=== SEED: 51 ==="
+python src/train.py dbmdz/bert-base-turkish-128k-cased democracy 51

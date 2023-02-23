@@ -15,20 +15,31 @@ import sys
 # INPUTS
 pretrained_transformers_model = sys.argv[1] # For example: "xlm-roberta-base"
 seed = int(sys.argv[2])
-max_seq_length = int(sys.argv[3]) # max length of a document (in tokens)
-batch_size = int(sys.argv[4])
-dev_ratio = float(sys.argv[5])
+module_name = sys.argv[3]
+device_ids = [int(i) for i in sys.argv[4].split(",")]
 
 # MUST SET THESE VALUES
-repo_path = "/path/to/this/repo"
-train_filename = repo_path + "/data/train_examples.json" # sys.argv[1]
-test_filename = repo_path + "/data/test_examples.json"
-# test_filename = repo_path + "/data/examples_to_be_predicted.json"
+max_seq_length = 64
+batch_size = 64
+dev_ratio = 0.1
+
+repo_path = "/home/username/twitter_topic"
+train_filename = "{}/data/adjudicated_20230222/{}/train.json".format(repo_path, module_name)
+test_filename = "{}/data/adjudicated_20230222/{}/test.json".format(repo_path, module_name)
+
 only_test = False # Only perform testing
 predict = False # Predict instead of testing
 has_token_type_ids = False
 
-label_list = ["category1", "category2", "category3"]
+if module_name == "welfare":
+    label_list = ["social_policy", "labour_and_employment", "education",
+                  "health_and_public_health", "disability", "housing"]
+elif module_name == "democracy":
+    label_list = ["elections_and_voting", "justice_system", "human_rights",
+                  "regime_and_constitution", "kurdish_question"]
+else:
+    raise("Module name {} is not known!".format(module_name))
+
 label_to_idx = {}
 idx_to_label = {}
 for (i, label) in enumerate(label_list):
@@ -41,10 +52,10 @@ dev_metric = "f1_macro"
 num_epochs = 30
 dev_set_splitting = "random" # random, or any filename
 use_gpu = True
-device_ids = [0, 1, 2, 3, 4, 5, 6, 7] # if not multi-gpu then pass a single number such as [0]
+# device_ids = [0, 1, 2, 3, 4, 5, 6, 7] # if not multi-gpu then pass a single number such as [0]
 positive_threshold = 0.5 # Outputted probabilities bigger than this number is considered positive in case of binary classifications
 return_probabilities = False # whether or not to return probabilities instead of labels when predicting
-model_path = "{}_{}_{}_{:.2f}_{}.pt".format(pretrained_transformers_model.replace("/", "_"), max_seq_length, batch_size, dev_ratio, seed)
+model_path = "{}_{}_{}.pt".format(pretrained_transformers_model.replace("/", "_"), module_name, seed)
 
 # optional, used in testing
 classifier_path = ""# repo_path + "/models/best_models/20220528_classifier_sentence-transformers_paraphrase-xlm-r-multilingual-v1_44.pt"
@@ -119,6 +130,55 @@ def test_model(encoder, classifier, dataloader):
               "recall_micro": recall_micro,
               "f1_micro": f1_micro,
               "mcc": mcc}
+
+    return result, eval_loss
+
+# Test for labels individually
+def test_model2(encoder, classifier, dataloader):
+    all_preds = {i: [] for i in range(len(label_list))}
+    all_label_ids = {i: [] for i in range(len(label_list))}
+    eval_loss = 0
+    nb_eval_steps = 0
+    for val_step, batch in enumerate(dataloader):
+        if has_token_type_ids:
+            input_ids, input_mask, token_type_ids, label_ids = tuple(t.to(device) for t in batch)
+            embeddings = encoder(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids)[1]
+        else:
+            input_ids, input_mask, label_ids = tuple(t.to(device) for t in batch)
+            embeddings = encoder(input_ids, attention_mask=input_mask)[1]
+
+        with torch.no_grad():
+            out = classifier(embeddings)
+            tmp_eval_loss = criterion(out, label_ids)
+
+        eval_loss += tmp_eval_loss.mean().item()
+
+        label_ids = label_ids.to('cpu').numpy().tolist()
+        curr_preds = torch.sigmoid(out).detach().cpu().numpy().tolist()
+        for i, preds in enumerate(curr_preds):
+            for ii, pred in enumerate(preds):
+                all_preds[ii].append(int(pred >= positive_threshold))
+                all_label_ids[ii].append(int(label_ids[i][ii]))
+
+        nb_eval_steps += 1
+
+    result = {}
+    for i in all_preds.keys():
+        curr_label = idx_to_label[i]
+
+        curr_label_preds = all_preds[i]
+        curr_label_gold = all_label_ids[i]
+
+        precision, recall, f1, _ = precision_recall_fscore_support(curr_label_gold, curr_label_preds, average="macro")
+        precision_micro, recall_micro, f1_micro, _ = precision_recall_fscore_support(curr_label_gold, curr_label_preds, average="micro")
+        mcc = matthews_corrcoef(curr_label_preds, curr_label_gold)
+        result["{}_precision_macro".format(curr_label)] = precision
+        result["{}_recall_macro".format(curr_label)] = recall
+        result["{}_f1_macro".format(curr_label)] = f1
+        result["{}_precision_micro".format(curr_label)] = precision_micro
+        result["{}_recall_micro".format(curr_label)] = recall_micro
+        result["{}_f1_micro".format(curr_label)] = f1_micro
+        result["{}_mcc".format(curr_label)] = mcc
 
     return result, eval_loss
 
@@ -286,11 +346,14 @@ if __name__ == '__main__':
         test_dataset = TransformersData(test_examples, label_to_idx, tokenizer, max_seq_length=max_seq_length, has_token_type_ids=has_token_type_ids)
         test_dataloader = DataLoader(dataset=test_dataset, batch_size=batch_size)
 
-        result, test_loss = test_model(encoder, classifier, test_dataloader)
+        result, test_loss = test_model2(encoder, classifier, test_dataloader)
         result["test_loss"] = test_loss
 
         print("***** TEST RESULTS *****")
         for key in sorted(result.keys()):
             print("  %s = %.6f" %(key, result[key]))
 
+        result, test_loss = test_model(encoder, classifier, test_dataloader)
+        for key in sorted(result.keys()):
+            print("  %s = %.6f" %(key, result[key]))
         print("TEST SCORE: %.6f" %result[dev_metric])

@@ -18,12 +18,23 @@ database_or_input_filename = sys.argv[1]
 
 # MUST SET THESE VALUES
 output_filename = "out.json"
-pretrained_transformers_model = "xlm-roberta-base"
-max_seq_length = 512
-batch_size = 64
-idx_to_label = ["category1", "category2", "category3"]
-encoder_path = ""
-classifier_path = ""
+pretrained_transformers_model = "dbmdz/bert-base-turkish-128k-cased"
+max_seq_length = 64
+batch_size = 1536
+repo_path = "/home/username/twitter_topic"
+
+module_name = "welfare"
+if module_name == "welfare":
+    idx_to_label = ["social_policy", "labour_and_employment", "education",
+                    "health_and_public_health", "disability", "housing"]
+    encoder_path = "{}/models/best_models/multi_label/encoder_dbmdz_bert-base-turkish-128k-cased_welfare_43.pt".format(repo_path)
+    classifier_path = "{}/models/best_models/multi_label/classifier_dbmdz_bert-base-turkish-128k-cased_welfare_43.pt".format(repo_path)
+elif module_name == "democracy":
+    idx_to_label = ["elections_and_voting", "justice_system", "human_rights",
+                    "regime_and_constitution", "kurdish_question"]
+    encoder_path = "{}/models/best_models/multi_label/encoder_dbmdz_bert-base-turkish-128k-cased_democracy_42.pt".format(repo_path)
+    classifier_path = "{}/models/best_models/multi_label/classifier_dbmdz_bert-base-turkish-128k-cased_democracy_42.pt".format(repo_path)
+
 device = torch.device("cuda")
 
 # OPTIONS
@@ -94,7 +105,7 @@ if __name__ == "__main__":
         tweet_col = db["tweets"]
 
         # NOTE: This find can be changed according to the task.
-        tweets_to_predict = tweet_col.find({task_name: None}, ["_id", "text"])
+        tweets_to_predict = tweet_col.find({module_name: None}, ["_id", "text"])
 
         curr_batch = []
         for i, tweet in enumerate(tweets_to_predict):
@@ -112,7 +123,7 @@ if __name__ == "__main__":
                 # TODO: Think about multiple updates at the same time
                 for pred_idx, pred in enumerate(preds):
                     curr_d = curr_batch[pred_idx]
-                    tweet_col.update_one({"_id": curr_d["_id"]}, {"$set": {task_name: pred}})
+                    tweet_col.update_one({"_id": curr_d["_id"]}, {"$set": {module_name: pred}})
 
                 curr_batch = []
 
@@ -124,7 +135,7 @@ if __name__ == "__main__":
             preds = model_predict(inputs)
             for pred_idx, pred in enumerate(preds):
                 curr_d = curr_batch[pred_idx]
-                tweet_col.update_one({"_id": curr_d["_id"]}, {"$set": {task_name: pred}})
+                tweet_col.update_one({"_id": curr_d["_id"]}, {"$set": {module_name: pred}})
 
 
     else: # if filename

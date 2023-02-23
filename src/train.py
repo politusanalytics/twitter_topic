@@ -14,24 +14,28 @@ import sys
 # INPUTS
 pretrained_transformers_model = sys.argv[1] # For example: "xlm-roberta-base"
 seed = int(sys.argv[2])
-max_seq_length = int(sys.argv[3]) # max length of a document (in tokens)
-batch_size = int(sys.argv[4])
-dev_ratio = float(sys.argv[5])
+module_and_task = sys.argv[3]
+device_ids = [int(i) for i in sys.argv[4].split(",")]
 
 # MUST SET THESE VALUES
-repo_path = "/path/to/this/repo"
-train_filename = repo_path + "/data/train_examples.json" # sys.argv[1]
-test_filename = repo_path + "/data/test_examples.json"
-# test_filename = repo_path + "/data/examples_to_be_predicted.json"
+max_seq_length = 64
+batch_size = 64
+dev_ratio = 0.1
 only_test = False # Only perform testing
 predict = False # Predict instead of testing
 has_token_type_ids = False
+repo_path = "/home/username/twitter_topic"
 
-label_list = ["category1", "category2", "category3"]
+train_filename = "{}/data/adjudicated_20230222/{}/train.json".format(repo_path, module_and_task)
+test_filename = "{}/data/adjudicated_20230222/{}/test.json".format(repo_path, module_and_task)
+dev_set_splitting = "{}/data/adjudicated_20230222/{}/dev.json".format(repo_path, module_and_task)
+
+task_name = module_and_task.split("/")[1]
+label_list = ["{}-pos".format(task_name), "{}-neg".format(task_name)]
 label_to_idx = {}
 idx_to_label = {}
 for (i, label) in enumerate(label_list):
-    label_to_idx[label] = i
+    label_to_idx[str(i)] = i
     idx_to_label[i] = label
 
 # SETTINGS
@@ -39,12 +43,12 @@ binary = len(label_list) == 2
 learning_rate = 2e-5
 dev_metric = "f1_macro"
 num_epochs = 30
-dev_set_splitting = "random" # random, or any filename
+# dev_set_splitting = "random" # random, or any filename
 use_gpu = True
-device_ids = [0, 1, 2, 3, 4, 5, 6, 7] # if not multi-gpu then pass a single number such as [0]
+# device_ids = [0, 1, 2, 3, 4, 5, 6, 7] # if not multi-gpu then pass a single number such as [0]
 positive_threshold = 0.5 # Outputted probabilities bigger than this number is considered positive in case of binary classifications
 return_probabilities = False # whether or not to return probabilities instead of labels when predicting
-model_path = "{}_{}_{}_{:.2f}_{}.pt".format(pretrained_transformers_model.replace("/", "_"), max_seq_length, batch_size, dev_ratio, seed)
+model_path = "{}_{}_{}.pt".format(pretrained_transformers_model.replace("/", "_"), task_name, seed)
 
 # optional, used in testing
 classifier_path = ""# repo_path + "/models/best_models/20220528_classifier_sentence-transformers_paraphrase-xlm-r-multilingual-v1_44.pt"

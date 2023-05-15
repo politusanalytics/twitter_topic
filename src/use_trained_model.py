@@ -44,6 +44,7 @@ query = {"text": {"$nin": ["", None]}, module_name: None}
 # See if there is anything to predict
 if database_or_input_filename == "database":
     import pymongo
+    from pymongo import UpdateOne
     # Connect to mongodb
     mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
     db = mongo_client["politus_twitter"]
@@ -133,10 +134,9 @@ if __name__ == "__main__":
                 inputs = tokenizer(texts, return_tensors="pt", padding="max_length", truncation=True,
                                    max_length=max_seq_length)
                 preds = model_predict(inputs)
-                # TODO: Think about multiple updates at the same time
-                for pred_idx, pred in enumerate(preds):
-                    curr_d = curr_batch[pred_idx]
-                    tweet_col.update_one({"_id": curr_d["_id"]}, {"$set": {module_name: pred}})
+
+                curr_updates = [UpdateOne({"_id": curr_batch[pred_idx]}, {"$set": {module_name: pred}}) for pred_idx, pred in enumerate(preds)]
+                tweet_col.bulk_write(curr_updates, ordered=False)
 
                 curr_batch = []
 
@@ -146,9 +146,9 @@ if __name__ == "__main__":
             inputs = tokenizer(texts, return_tensors="pt", padding="max_length", truncation=True,
                                max_length=max_seq_length)
             preds = model_predict(inputs)
-            for pred_idx, pred in enumerate(preds):
-                curr_d = curr_batch[pred_idx]
-                tweet_col.update_one({"_id": curr_d["_id"]}, {"$set": {module_name: pred}})
+
+            curr_updates = [UpdateOne({"_id": curr_batch[pred_idx]}, {"$set": {module_name: pred}}) for pred_idx, pred in enumerate(preds)]
+            tweet_col.bulk_write(curr_updates, ordered=False)
 
 
     else: # if filename

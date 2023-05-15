@@ -37,6 +37,8 @@ if module_name == "welfare":
 elif module_name == "democracy":
     label_list = ["elections_and_voting", "justice_system", "human_rights",
                   "regime_and_constitution", "kurdish_question"]
+elif module_name == "big5":
+    label_list = ["internal_affairs", "national_defense", "corruption", "foreign_affairs", "economy"]
 else:
     raise("Module name {} is not known!".format(module_name))
 

@@ -38,6 +38,12 @@ elif module_name == "big5":
     idx_to_label = ["internal_affairs", "national_defense", "corruption", "foreign_affairs", "economy"]
     encoder_path = "{}/models/best_models/multi_label/encoder_dbmdz_bert-base-turkish-128k-cased_big5_51.pt".format(repo_path)
     classifier_path = "{}/models/best_models/multi_label/classifier_dbmdz_bert-base-turkish-128k-cased_big5_51.pt".format(repo_path)
+elif module_name == "municipal":
+    idx_to_label = ["urban_public_infrastructure", "social_and_welfare_services",
+                    "environment_and_public_health", "housing", "animal_welfare",
+                    "local_politics", "culture"]
+    encoder_path = "{}/models/best_models/multi_label/encoder_dbmdz_bert-base-turkish-128k-cased_municipal_70.pt".format(repo_path)
+    classifier_path = "{}/models/best_models/multi_label/classifier_dbmdz_bert-base-turkish-128k-cased_municipal_70.pt".format(repo_path)
 
 query = {"text": {"$nin": ["", None]}, module_name: None}
 
@@ -118,6 +124,13 @@ if __name__ == "__main__":
     total_processed = 0
     if database_or_input_filename == "database": # if database
         # NOTE: This find can be changed according to the task.
+
+        # # For random selection
+        # tweets_to_predict = tweet_col.aggregate([
+        #     {"$match": query},
+        #     {"$sample": { "size": 1000000 }}
+        # ])
+
         tweets_to_predict = tweet_col.find(query, ["_id", "text"])
 
         curr_batch = []
@@ -135,7 +148,7 @@ if __name__ == "__main__":
                                    max_length=max_seq_length)
                 preds = model_predict(inputs)
 
-                curr_updates = [UpdateOne({"_id": curr_batch[pred_idx]["_id"]}, {"$set": {task_name: pred}}) for pred_idx, pred in enumerate(preds)]
+                curr_updates = [UpdateOne({"_id": curr_batch[pred_idx]["_id"]}, {"$set": {module_name: pred}}) for pred_idx, pred in enumerate(preds)]
                 tweet_col.bulk_write(curr_updates, ordered=False)
 
                 curr_batch = []
@@ -147,7 +160,7 @@ if __name__ == "__main__":
                                max_length=max_seq_length)
             preds = model_predict(inputs)
 
-            curr_updates = [UpdateOne({"_id": curr_batch[pred_idx]["_id"]}, {"$set": {task_name: pred}}) for pred_idx, pred in enumerate(preds)]
+            curr_updates = [UpdateOne({"_id": curr_batch[pred_idx]["_id"]}, {"$set": {module_name: pred}}) for pred_idx, pred in enumerate(preds)]
             tweet_col.bulk_write(curr_updates, ordered=False)
 
 

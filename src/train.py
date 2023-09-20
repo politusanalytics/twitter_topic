@@ -39,6 +39,12 @@ elif module_name == "democracy":
                   "regime_and_constitution", "kurdish_question"]
 elif module_name == "big5":
     label_list = ["internal_affairs", "national_defense", "corruption", "foreign_affairs", "economy"]
+elif module_name == "municipal":
+    train_filename = f"{repo_path}/data/20230703_municipal/train.json"
+    test_filename = f"{repo_path}/data/20230703_municipal/test.json"
+    label_list = ["urban_public_infrastructure", "social_and_welfare_services",
+                  "environment_and_public_health", "housing", "animal_welfare",
+                  "local_politics", "culture"]
 else:
     raise("Module name {} is not known!".format(module_name))
 
